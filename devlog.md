@@ -30,3 +30,5 @@ L'objectif était de créer un éditeur GeoJSON simple, hébergé sur GitHub Pag
 ## Problèmes connus
 
 *   L'authentification pour `git push` en ligne de commande a échoué (erreur 403). L'utilisateur gère la résolution de son côté en utilisant un PAT comme mot de passe.
+
+**TEST COMMIT**
