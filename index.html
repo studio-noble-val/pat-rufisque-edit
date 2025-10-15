@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur Cartographique</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="auth-container">
+        <h2>Éditeur Cartographique PAT Rufisque</h2>
+        <p>Pour commencer, veuillez fournir un token d'accès personnel GitHub.</p>
+        <div class="token-instructions">
+            <a href="https://github.com/settings/tokens/new?scopes=repo&description=Editeur%20PAT%20Rufisque" target="_blank">Cliquez ici pour générer un token</a>
+            <span>(Assurez-vous que la permission "repo" est bien cochée).</span>
+        </div>
+        <input type="password" id="token-input" placeholder="Collez votre token ici...">
+        <button id="login-btn">Charger l'éditeur</button>
+        <p id="error-message" class="error"></p>
+    </div>
+
+    <main id="app-container" style="display:none;">
+        <div id="map"></div>
+        <div id="editor-panel">
+            <h3>Édition du point</h3>
+            <div id="editor-form">
+                <!-- Le formulaire d'édition sera généré ici -->
+            </div>
+            <button id="save-btn">Enregistrer les modifications</button>
+        </div>
+         <div id="user-info">
+            <span id="user-display"></span>
+            <button id="logout-btn">Déconnexion</button>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

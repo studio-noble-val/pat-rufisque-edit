@@ -1,0 +1,1 @@
+Ce projet est géré et assisté par Gemini. Objectif : créer un éditeur GeoJSON simple avec authentification GitHub pour des contributeurs non-techniques.

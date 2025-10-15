@@ -1,0 +1,144 @@
+
+/* Styles généraux */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden; /* Empêche le scroll de la page entière */
+}
+
+/* Conteneur d'authentification */
+#auth-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+}
+
+#auth-container h2 {
+    margin-bottom: 1rem;
+}
+
+#auth-container p {
+    margin-bottom: 1.5rem;
+    color: #555;
+}
+
+.token-instructions {
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.token-instructions a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+.token-instructions span {
+    display: block;
+    color: #888;
+    margin-top: 0.25rem;
+}
+
+#token-input {
+    padding: 0.75rem;
+    width: 350px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+#login-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #28a745;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#login-btn:hover {
+    background-color: #218838;
+}
+
+.error {
+    color: #d73a49;
+    margin-top: 1rem;
+    min-height: 1.2em;
+}
+
+/* Conteneur principal de l'application */
+#app-container {
+    display: flex;
+    height: 100vh;
+}
+
+#map {
+    height: 100%;
+    width: 75%;
+    flex-grow: 1;
+}
+
+/* Panneau d'édition */
+#editor-panel {
+    width: 25%;
+    min-width: 300px;
+    padding: 1rem;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    background: #f9f9f9;
+}
+
+#editor-form .form-group {
+    margin-bottom: 1rem;
+}
+
+#editor-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+#editor-form input, 
+#editor-form select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Infos utilisateur et déconnexion */
+#user-info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+#user-display {
+    margin-right: 10px;
+}
+
+#logout-btn {
+    background: none;
+    border: 1px solid #d73a49;
+    color: #d73a49;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#logout-btn:hover {
+    background: #d73a49;
+    color: white;
+}
