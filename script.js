@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             map.removeLayer(temporaryMarker);
             temporaryMarker = null;
         }
-        currentEditingLayer.layer.setOpacity(1); // Rendre la couche originale de nouveau visible
+        currentEditingLayer.layer.setStyle({ opacity: 1, fillOpacity: 0.8 }); // Rendre la couche originale de nouveau visible
         currentEditingLayer = null;
     });
 
@@ -125,17 +125,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayEditor(feature, layer) {
-        alert('Clic détecté, ouverture de l\'éditeur...');
+        // Si un autre élément était en cours d'édition, on le restaure
+        if (currentEditingLayer) {
+            currentEditingLayer.layer.setStyle({ opacity: 1, fillOpacity: 0.8 });
+        }
+        if (temporaryMarker) {
+            map.removeLayer(temporaryMarker);
+        }
+
         currentEditingLayer = { feature, layer };
         editorForm.innerHTML = '';
 
+        /* Temporairement désactivé pour se concentrer sur les attributs
         // Créer un marqueur déplaçable
         if (feature.geometry) {
             temporaryMarker = L.marker(L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]), {
                 draggable: true
             }).addTo(map);
-            layer.setOpacity(0); // Cacher la couche originale
+            layer.setStyle({ opacity: 0, fillOpacity: 0 }); // Cacher la couche originale
         }
+        */
 
         // Champs à ignorer et à traiter spécifiquement
         const fieldsToIgnore = ['nom_photo_URL'];
@@ -221,13 +230,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadGeoJSONFiles() {
-        allGeoJSONData.length = 0; // Vider le tableau avant de le remplir
         const token = sessionStorage.getItem('github_token');
         if (!token) return;
 
-        const colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231'];
-
-        // Vider les anciennes couches du contrôle
+        // Vider les anciennes couches et données
+        allGeoJSONData.length = 0;
         if (layerControl) {
             map.eachLayer(layer => {
                 if (layer instanceof L.GeoJSON) {
@@ -237,27 +244,36 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        for (const [index, fileName] of config.geojsonFiles.entries()) {
-            try {
-                const response = await fetch(`https://api.github.com/repos/${config.repoOwner}/${config.repoName}/contents/${fileName}`, {
-                     headers: {
+        try {
+            const promises = config.geojsonFiles.map(fileName =>
+                fetch(`https://api.github.com/repos/${config.repoOwner}/${config.repoName}/contents/${fileName}`, {
+                    headers: {
                         'Authorization': `Bearer ${token}`,
                         'Accept': 'application/vnd.github.v3+json'
                     }
-                });
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status} for ${fileName}`);
+                    }
+                    return response.json();
+                })
+            );
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+            const fileContents = await Promise.all(promises);
 
-                const fileContent = await response.json();
+            const colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231'];
 
+            fileContents.forEach((fileContent, index) => {
                 if (fileContent.encoding === 'base64') {
-                    const decodedContent = atob(fileContent.content);
+                    const decodedContent = decodeURIComponent(atob(fileContent.content).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
                     const geojsonData = JSON.parse(decodedContent);
-                    allGeoJSONData.push(geojsonData); // Stocker les données
-                    
+                    allGeoJSONData.push(geojsonData);
+
                     const color = colors[index % colors.length];
+                    const fileName = config.geojsonFiles[index];
+
                     const geojsonLayer = L.geoJSON(geojsonData, {
                         pointToLayer: function (feature, latlng) {
                             return L.circleMarker(latlng, {
@@ -271,20 +287,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         onEachFeature: function (feature, layer) {
                             layer.on('click', function (e) {
+                                // On supprime l'alerte de débogage maintenant que ça fonctionne
+                                // alert('Clic détecté, ouverture de l\'éditeur...');
                                 displayEditor(feature, layer);
                             });
                         }
                     });
-                    
+
                     const layerName = fileName.split('/').pop().replace('.geojson', '').replace(/_/g, ' ');
                     layerControl.addOverlay(geojsonLayer, layerName);
                     geojsonLayer.addTo(map); // Afficher la couche par défaut
                 }
+            });
 
-            } catch (error) {
-                console.error(`Erreur lors du chargement du fichier ${fileName}:`, error);
-                alert(`Impossible de charger le fichier ${fileName}. Vérifiez que le fichier existe et que le token a les bonnes permissions.`);
-            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des fichiers GeoJSON:', error);
+            alert('Une erreur est survenue lors du chargement des données depuis GitHub. Vérifiez la console pour plus de détails.');
         }
     }
 });
