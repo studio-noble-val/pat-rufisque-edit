@@ -74,8 +74,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const editorPanel = document.getElementById('editor-panel');
     const editorForm = document.getElementById('editor-form');
     const saveBtn = document.getElementById('save-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
 
-    saveBtn.addEventListener('click', () => {
+    cancelBtn.addEventListener('click', () => {
+        if (currentEditingLayer) {
+            // Restaurer la couche originale
+            currentEditingLayer.layer.setStyle({ opacity: 1, fillOpacity: 0.8 });
+        }
+        if (temporaryMarker) {
+            map.removeLayer(temporaryMarker);
+            temporaryMarker = null;
+        }
+        
+        editorPanel.style.display = 'none';
+        currentEditingLayer = null;
+    });
+
+    function safeBtoa(str) {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+            function toSolidBytes(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+    }
+
+    saveBtn.addEventListener('click', async () => {
         if (!currentEditingLayer) return;
 
         // 1. Mettre à jour les propriétés depuis le formulaire
@@ -95,20 +117,69 @@ document.addEventListener('DOMContentLoaded', () => {
         if (temporaryMarker) {
             const newLatLng = temporaryMarker.getLatLng();
             currentEditingLayer.feature.geometry.coordinates = [newLatLng.lng, newLatLng.lat];
-            // Mettre à jour la position du layer original aussi
             currentEditingLayer.layer.setLatLng(newLatLng);
         }
 
-        alert('Modifications enregistrées localement. La sauvegarde sur GitHub sera implémentée.');
+        const token = sessionStorage.getItem('github_token');
+        const { fileName, geojsonData } = currentEditingLayer;
+        const featureName = currentEditingLayer.feature.properties.nom || currentEditingLayer.feature.properties.nom_etab || 'un point';
+        const commitMessage = `Mise à jour de "${featureName}" via l'éditeur PAT`;
 
-        // 3. Nettoyer l'interface
-        editorPanel.style.display = 'none';
-        if (temporaryMarker) {
-            map.removeLayer(temporaryMarker);
-            temporaryMarker = null;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Sauvegarde en cours...';
+
+        try {
+            // Étape 1: Récupérer le SHA actuel du fichier
+            const fileInfoResponse = await fetch(`https://api.github.com/repos/${config.repoOwner}/${config.repoName}/contents/${fileName}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!fileInfoResponse.ok) {
+                throw new Error('Impossible de récupérer les informations du fichier sur GitHub.');
+            }
+            const fileInfo = await fileInfoResponse.json();
+            const sha = fileInfo.sha;
+
+            // Étape 2: Préparer le nouveau contenu
+            const updatedContent = JSON.stringify(geojsonData, null, 2); // Pretty print JSON
+            const encodedContent = safeBtoa(updatedContent);
+
+            // Étape 3: Envoyer la mise à jour via une requête PUT
+            const updateResponse = await fetch(`https://api.github.com/repos/${config.repoOwner}/${config.repoName}/contents/${fileName}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: commitMessage,
+                    content: encodedContent,
+                    sha: sha
+                })
+            });
+
+            if (!updateResponse.ok) {
+                const errorData = await updateResponse.json();
+                throw new Error(`Erreur lors de la sauvegarde sur GitHub: ${errorData.message}`);
+            }
+
+            alert('Sauvegarde sur GitHub réussie !');
+
+            // Nettoyer l'interface
+            editorPanel.style.display = 'none';
+            if (temporaryMarker) {
+                map.removeLayer(temporaryMarker);
+                temporaryMarker = null;
+            }
+            currentEditingLayer.layer.setStyle({ opacity: 1, fillOpacity: 0.8 });
+            currentEditingLayer = null;
+
+        } catch (error) {
+            console.error('Erreur de sauvegarde:', error);
+            alert(`Erreur de sauvegarde : ${error.message}`);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Enregistrer les modifications';
         }
-        currentEditingLayer.layer.setStyle({ opacity: 1, fillOpacity: 0.8 }); // Rendre la couche originale de nouveau visible
-        currentEditingLayer = null;
     });
 
     function getUniqueValues(fieldName) {
@@ -124,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return [...values].sort();
     }
 
-    function displayEditor(feature, layer) {
+    function displayEditor(feature, layer, fileName, geojsonData) {
         // Si un autre élément était en cours d'édition, on le restaure
         if (currentEditingLayer) {
             currentEditingLayer.layer.setStyle({ opacity: 1, fillOpacity: 0.8 });
@@ -133,10 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
             map.removeLayer(temporaryMarker);
         }
 
-        currentEditingLayer = { feature, layer };
+        currentEditingLayer = { feature, layer, fileName, geojsonData };
         editorForm.innerHTML = '';
 
-        /* Temporairement désactivé pour se concentrer sur les attributs
         // Créer un marqueur déplaçable
         if (feature.geometry) {
             temporaryMarker = L.marker(L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]), {
@@ -144,10 +214,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }).addTo(map);
             layer.setStyle({ opacity: 0, fillOpacity: 0 }); // Cacher la couche originale
         }
-        */
 
         // Champs à ignorer et à traiter spécifiquement
-        const fieldsToIgnore = ['nom_photo_URL'];
+        const fieldsToIgnore = ['nom_photo_URL', 'categorie', 'theme'];
+
+        // Mise à jour du titre et de l'icône
+        const category = feature.properties.categorie || feature.properties.theme || '';
+        const editorTitle = document.getElementById('editor-title');
+        const editorIcon = document.getElementById('editor-icon');
+        
+        let icon = '';
+        if (category.toLowerCase().includes('cantine')) {
+            icon = '🏫';
+        } else if (category.toLowerCase().includes('cuisine')) {
+            icon = '🍳';
+        } else if (category.toLowerCase().includes('fournisseur')) {
+            icon = '🚚';
+        }
+        editorIcon.textContent = icon;
+        editorTitle.textContent = `Édition : ${category}`;
+
         const booleanFields = ['cereales', 'maraichage', 'aviculture', 'boucherie', 'boutique', 'poisson'];
         const dateFields = ['date_creation'];
         const dropdownFields = {
@@ -287,9 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         onEachFeature: function (feature, layer) {
                             layer.on('click', function (e) {
-                                // On supprime l'alerte de débogage maintenant que ça fonctionne
-                                // alert('Clic détecté, ouverture de l\'éditeur...');
-                                displayEditor(feature, layer);
+                                displayEditor(feature, layer, fileName, geojsonData);
                             });
                         }
                     });

@@ -1,5 +1,36 @@
 # Devlog - Éditeur Cartographique
 
+**Date :** 15 octobre 2025
+
+## Phase 2 : Édition des données
+
+1.  **Implémentation du formulaire d'édition :**
+    *   Analyse de la structure des 3 fichiers GeoJSON (`cantines_scolaires`, `cuisine_centrale`, `fournisseurs`) pour définir les types de champs.
+    *   Création d'un formulaire "intelligent" qui s'adapte au type de données :
+        *   Champs texte, nombre, date (`<input type="date">`).
+        *   Listes déroulantes (`<select>`) pour les champs à valeurs prédéfinies (`cuisine_ratachement`, `statut`, etc.).
+        *   Cases à cocher (`<input type="checkbox">`) pour les champs booléens (0/1).
+    *   Le champ `nom_photo` est rendu éditable.
+
+2.  **Correction du bug d'encodage :**
+    *   Le problème des caractères accentués mal affichés a été identifié comme provenant de la fonction `atob()`.
+    *   Remplacement par une méthode de décodage robuste garantissant le support de l'UTF-8.
+
+3.  **Débogage de l'affichage du formulaire :**
+    *   Correction d'une `race condition` où les données n'étaient pas toutes chargées au moment de la création du formulaire. La fonction `loadGeoJSONFiles` a été refactorisée pour utiliser `Promise.all`.
+    *   Correction d'une erreur `layer.setOpacity is not a function` en remplaçant par `layer.setStyle()`.
+
+4.  **Implémentation de la sauvegarde sur GitHub :**
+    *   Mise en place de la communication avec l'API GitHub au clic sur "Enregistrer".
+    *   Le processus inclut la récupération du `SHA` du fichier pour éviter les conflits.
+    *   Le contenu mis à jour est encodé en Base64 (avec gestion des caractères UTF-8) et envoyé via une requête `PUT`.
+    *   Un message de commit est généré automatiquement.
+    *   L'interface utilisateur est mise à jour pour refléter l'état de la sauvegarde (bouton désactivé, messages de succès/erreur).
+
+---
+
+# Devlog - Éditeur Cartographique
+
 **Date :** 14 octobre 2025
 
 ## Phase 1 : Initialisation et Débogage

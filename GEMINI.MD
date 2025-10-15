@@ -2,9 +2,9 @@ Ce projet est géré et assisté par Gemini.
 
 **Objectif :** Créer un éditeur GeoJSON simple avec authentification GitHub pour des contributeurs non-techniques.
 
-**Statut :** Les fonctionnalités d'édition des points (attributs et géométrie) sont implémentées côté client.
+**Statut :** L'édition des attributs et la sauvegarde sur GitHub sont fonctionnelles.
 
-**Prochaines étapes :** Implémentation de la sauvegarde des modifications sur le dépôt GitHub.
+**Prochaines étapes :** Implémentation de l'édition de la géolocalisation (repositionnement des points), puis revue détaillée des champs de chaque source de données.
 
 ---
 
